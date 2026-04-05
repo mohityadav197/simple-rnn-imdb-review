@@ -1,5 +1,6 @@
 name: Build and Push RNN to Docker Hub
 
+# Trigger the workflow every time you push to the main branch
 on:
   push:
     branches: [ "main" ]
@@ -7,21 +8,25 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Download your code from GitHub to the runner machine
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Step 2: Log in to Docker Hub using your credentials
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          # Using your provided username
           username: mohitkhairwal2005
-          # Referencing the secret name you created (with the typo 'passwors')
-          password: ${{ secrets.passwors}}
+          # This pulls the token from the secret you named 'passwors'
+          password: ${{ secrets.passwors }}
+
+      # Step 3: Build the Docker image and push it to your Docker Hub repository
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          # Tagging the image for your Docker Hub repository
+          # This ensures the image is stored in your specific repository
           tags: mohitkhairwal2005/simple-rnn-imdb-review:latest
