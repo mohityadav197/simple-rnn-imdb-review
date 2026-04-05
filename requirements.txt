@@ -1,6 +1,4 @@
-ipykernel
-tensorflow-cpu
 streamlit
-pandas
 numpy
 h5py
+tensorflow-cpu
