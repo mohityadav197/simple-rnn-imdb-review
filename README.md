@@ -1,72 +1,68 @@
-# IMDB Sentiment Analyzer
+🎬 RNN Sentiment Pro: Production-Ready AI Pipeline
+An end-to-end Natural Language Processing (NLP) project featuring a Recurrent Neural Network (RNN) deployed via a fully automated CI/CD pipeline and Docker.
 
-A Streamlit web application for sentiment analysis of movie reviews using a pre-trained RNN model.
+🚀 Overview
+This project classifies movie reviews as Positive or Negative using an RNN model trained on the IMDB dataset. Beyond the AI logic, it demonstrates professional-grade software engineering practices, including cross-version model compatibility and containerized deployment.
 
-## Features
+🛠️ Tech Stack
+AI/ML: TensorFlow, Keras, NumPy
 
-- Analyze custom movie reviews for sentiment (positive/negative)
-- View prediction confidence and token insights
-- Run diagnostics on IMDB test data
-- Beautiful dark theme UI
+Web Framework: Streamlit
 
-## Prerequisites
+DevOps: Docker, GitHub Actions (CI/CD)
 
-- Docker
-- Docker Compose (optional, for easier management)
+Infrastructure: Docker Hub
 
-## Running with Docker
+✨ Key Features
+Real-time Sentiment Analysis: Predictive modeling for custom text input.
 
-### Using Docker Compose (Recommended)
+Pro-Level UI: A "wide-mode" dashboard featuring confidence metrics, progress bars, and a technical breakdown sidebar.
 
-1. Build and run the application:
-   ```bash
-   docker-compose up --build
-   ```
+Environment-Agnostic Loader: A custom "Safe Load" utility that patches Keras 3 metadata for Keras 2 environments, preventing deployment crashes.
 
-2. Open your browser and go to `http://localhost:8501`
+Automated Pipeline: Fully integrated CI/CD that builds and pushes the image to Docker Hub on every commit.
 
-### Using Docker directly
+🤖 CI/CD Pipeline
+This repository uses GitHub Actions to maintain a "Build-Once, Run-Anywhere" workflow:
 
-1. Build the Docker image:
-   ```bash
-   docker build -t imdb-sentiment-analyzer .
-   ```
+Code Push: Triggered on every push to the main branch.
 
-2. Run the container:
-   ```bash
-   docker run -p 8501:8501 imdb-sentiment-analyzer
-   ```
+Containerization: GitHub spins up a Linux runner to build the Docker image.
 
-3. Open your browser and go to `http://localhost:8501`
+Automated Registry: The image is pushed to Docker Hub (mohitkhairwal2005/simple-rnn-imdb-review).
 
-## Local Development
+📦 Getting Started
+1. Run via Docker (Recommended)
+You don't need Python or TensorFlow installed. Just pull the latest production image:
 
-If you want to run locally without Docker:
+Bash
+# Pull the image from Docker Hub
+docker pull mohitkhairwal2005/simple-rnn-imdb-review:latest
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Run the container
+docker run -p 8501:8501 mohitkhairwal2005/simple-rnn-imdb-review:latest
+Access the app at: http://localhost:8501
 
-2. Run the Streamlit app:
-   ```bash
-   streamlit run main.py
-   ```
+2. Local Development
+Bash
+git clone https://github.com/mohityadav197/simple-rnn-imdb-review.git
+cd simple-rnn-imdb-review
+pip install -r requirements.txt
+streamlit run main.py
+📂 Project Structure
+Plaintext
+├── .github/workflows/
+│   └── deploy.yml          # CI/CD Pipeline configuration
+├── main.py                 # Streamlit UI with Metadata Patching logic
+├── simple_rnn_imdb.h5      # Pre-trained RNN Model
+├── Dockerfile              # Container configuration
+├── requirements.txt        # Managed dependencies (TensorFlow 2.16+)
+└── README.md               # Documentation
+🧠 Engineering Highlights for Recruiters
+Cross-Version Compatibility: Implemented a robust h5py metadata stripper to allow Keras 3 models to run in Keras 2 environments.
 
-## Project Structure
+Security: Managed deployment secrets using GitHub Secrets to prevent API/Token leakage.
 
-- `main.py`: Main Streamlit application
-- `simple_rnn_imdb.h5`: Pre-trained RNN model
-- `requirements.txt`: Python dependencies
-- `Dockerfile`: Docker image configuration
-- `docker-compose.yml`: Docker Compose configuration
-- Notebooks: Jupyter notebooks for model training and analysis
+Optimization: Utilized @st.cache_resource for efficient model loading and resource management.
 
-
-
-## docker specific structure
-Dockerfile - Defines the container image with Python 3.9, installs dependencies, and runs the Streamlit app
-.dockerignore - Excludes unnecessary files from the Docker build context
-docker-compose.yml - Provides an easy way to run the containerized app
-requirements.txt - Added streamlit dependency
-README.md - Complete instructions for running the dockerized application
+Maintained by: Mohit Yadav | Location: Kapriwas, Haryana 🇮🇳

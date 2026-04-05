@@ -7,77 +7,101 @@ from tensorflow.keras.models import load_model
 import h5py
 import json
 
-# --- THE ROBUST SAFE LOAD FIX ---
+# --- 1. ROBUST MODEL LOADER (The "Metadata Patch") ---
 def safe_load_model(model_path):
     try:
-        # Attempt 1: Standard Load
         return load_model(model_path)
-    except (TypeError, ValueError, AttributeError) as e:
-        st.warning("Patching model metadata for environment compatibility...")
-        
+    except (TypeError, ValueError, AttributeError):
         with h5py.File(model_path, 'r+') as f:
             if 'model_config' in f.attrs:
-                # The Fix: Handle both 'bytes' and 'str' types for metadata
                 raw_config = f.attrs['model_config']
+                # Handle both bytes and string types for 2026 environments
                 if isinstance(raw_config, bytes):
                     raw_config = raw_config.decode('utf-8')
                 
                 model_config = json.loads(raw_config)
                 
-                # Iterate through layers to strip Keras 3 specific keywords
                 for layer in model_config['config']['layers']:
                     if 'config' in layer:
-                        # Remove Keras 3 quantization tags
+                        # Strip Keras 3 specific keywords
                         layer['config'].pop('quantization_config', None)
-                        # Map Keras 3 batch_shape back to Keras 2 batch_input_shape
                         if 'batch_shape' in layer['config']:
                             layer['config']['batch_input_shape'] = layer['config'].pop('batch_shape')
                 
-                # Save the "cleaned" metadata back to the file
                 f.attrs['model_config'] = json.dumps(model_config).encode('utf-8')
-        
-        # Attempt 2: Load the patched model
         return load_model(model_path)
 
-# --- APP INITIALIZATION ---
+# --- 2. APP CONFIGURATION & DATA ---
+st.set_page_config(page_title="RNN Sentiment Pro", page_icon="🎬", layout="wide")
 
-# 1. Load the Word Index
-# Note: This might take a second the first time as it downloads 1.6MB
-word_index = imdb.get_word_index()
+# Load word index once
+@st.cache_resource
+def get_imdb_data():
+    return imdb.get_word_index(), safe_load_model('simple_rnn_imdb.h5')
 
-# 2. Load the Model using our Robust Loader
-model = safe_load_model('simple_rnn_imdb.h5')
+word_index, model = get_imdb_data()
 
-# 3. Text Preprocessing Logic
 def preprocess_text(text):
     words = text.lower().split()
-    # The IMDB index is offset by 3 (0=padding, 1=start, 2=unknown)
     encoded_review = [word_index.get(word, 2) + 3 for word in words]
-    # Ensure it's the exact length the RNN expects (250)
     padded_review = sequence.pad_sequences([encoded_review], maxlen=250)
     return padded_review
 
-# --- STREAMLIT UI ---
-st.title('🎬 RNN Movie Sentiment Analyzer')
-st.write("Deploying deep learning models to production at 4:30 AM.")
+# --- 3. UI LAYOUT: SIDEBAR ---
+with st.sidebar:
+    st.image("https://www.tensorflow.org/images/tf_logo_social.png", width=150)
+    st.title("Neural Network Info")
+    st.markdown("""
+    **Architecture:** Simple RNN  
+    **Dataset:** IMDB Reviews  
+    **Input Shape:** $(None, 250)$  
+    **Vocabulary:** 10,000 words
+    """)
+    st.divider()
+    st.write("Built at 5:00 AM in Kapriwas 🇮🇳")
 
-user_review = st.text_area('Enter your movie review here:', 'I really enjoyed this film, the story was very compelling!')
+# --- 4. UI LAYOUT: MAIN PANEL ---
+st.title("🎬 AI Movie Review Sentiment Analysis")
+st.write("This system uses a Recurrent Neural Network to predict if a review is positive or negative.")
 
-if st.button('Analyze Sentiment'):
+user_review = st.text_area("Enter your movie review here:", height=150, 
+                          placeholder="Example: The acting was superb but the plot was a bit slow...")
+
+if st.button("Analyze Sentiment"):
     if user_review.strip():
-        # Process and Predict
-        processed_input = preprocess_text(user_review)
-        prediction = model.predict(processed_input)
-        
-        # Interpret Result
-        sentiment = 'Positive' if prediction[0][0] > 0.5 else 'Negative'
-        confidence = prediction[0][0] if sentiment == 'Positive' else 1 - prediction[0][0]
-        
-        # Display results with some style
-        st.subheader(f'The model thinks this is: {sentiment}')
-        st.progress(float(prediction[0][0]))
-        st.write(f"Confidence Score: {confidence:.2%}")
-    else:
-        st.error("Please enter some text to analyze.")
+        with st.spinner('Neural Network is processing...'):
+            # Preprocessing
+            processed_input = preprocess_text(user_review)
+            
+            # Prediction Logic
+            prediction = model.predict(processed_input)
+            prob = float(prediction[0][0])
+            
+            # Logic: If $P(positive) > 0.5$, sentiment is Positive
+            sentiment = "Positive" if prob > 0.5 else "Negative"
+            confidence = prob if sentiment == "Positive" else 1 - prob
 
-st.sidebar.info("Model: Simple RNN | Dataset: IMDB | Deployment: Docker + GitHub Actions")
+            st.divider()
+            
+            # Metric Columns
+            col1, col2 = st.columns(2)
+            with col1:
+                if sentiment == "Positive":
+                    st.success(f"### Sentiment: {sentiment} ✅")
+                else:
+                    st.error(f"### Sentiment: {sentiment} ❌")
+            
+            with col2:
+                st.metric(label="Confidence Score", value=f"{confidence:.2%}")
+                st.progress(prob)
+
+            # Debugging/Interactivity expander
+            with st.expander("Technical Breakdown"):
+                st.write("The model processed your text into the following numerical sequence:")
+                st.code(processed_input)
+                st.write(f"Raw Output Probability: {prob:.4f}")
+    else:
+        st.warning("Please enter some text before analyzing.")
+
+st.markdown("---")
+st.caption("Deployment Status: Dockerized | CI/CD: GitHub Actions (Live)")
