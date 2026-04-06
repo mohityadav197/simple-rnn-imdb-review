@@ -4,87 +4,70 @@ import tensorflow as tf
 from tensorflow.keras.datasets import imdb
 from tensorflow.keras.preprocessing import sequence
 from tensorflow.keras.models import load_model
-import h5py
-import json
 
-# --- 1. ROBUST MODEL LOADER (The "Metadata Patch") ---
-def safe_load_model(model_path):
-    try:
-        return load_model(model_path)
-    except (TypeError, ValueError, AttributeError):
-        with h5py.File(model_path, 'r+') as f:
-            if 'model_config' in f.attrs:
-                raw_config = f.attrs['model_config']
-                # Handle both bytes and string types for 2026 environments
-                if isinstance(raw_config, bytes):
-                    raw_config = raw_config.decode('utf-8')
-                
-                model_config = json.loads(raw_config)
-                
-                for layer in model_config['config']['layers']:
-                    if 'config' in layer:
-                        # Strip Keras 3 specific keywords
-                        layer['config'].pop('quantization_config', None)
-                        if 'batch_shape' in layer['config']:
-                            layer['config']['batch_input_shape'] = layer['config'].pop('batch_shape')
-                
-                f.attrs['model_config'] = json.dumps(model_config).encode('utf-8')
-        return load_model(model_path)
+# 1. Load the IMDB word index
+word_index = imdb.get_word_index()
+reverse_word_index = {value: key for key, value in word_index.items()}
 
-# --- 2. APP CONFIGURATION & DATA ---
-st.set_page_config(page_title="RNN Sentiment Pro", page_icon="🎬", layout="wide")
+# 2. Load the pre-trained model (Simple RNN V1.0)
+# Ensure 'simple_rnn_imdb.h5' is in your root directory on GitHub
+model = load_model('simple_rnn_imdb.h5')
 
-# Load word index once
-@st.cache_resource
-def get_imdb_data():
-    return imdb.get_word_index(), safe_load_model('simple_rnn_imdb.h5')
+# 3. Helper Function: Decode reviews (for technical breakdown)
+def decode_review(encoded_review):
+    return ' '.join([reverse_word_index.get(i - 3, '?') for i in encoded_review])
 
-word_index, model = get_imdb_data()
-
+# 4. Helper Function: Preprocess user input
 def preprocess_text(text):
     words = text.lower().split()
     encoded_review = [word_index.get(word, 2) + 3 for word in words]
     padded_review = sequence.pad_sequences([encoded_review], maxlen=250)
     return padded_review
 
-# --- 3. UI LAYOUT: SIDEBAR ---
-with st.sidebar:
-    st.image("https://www.tensorflow.org/images/tf_logo_social.png", width=150)
-    st.title("Neural Network Info")
-    st.markdown("""
-    **Architecture:** Simple RNN  
-    **Dataset:** IMDB Reviews  
-    **Input Shape:** $(None, 250)$  
-    **Vocabulary:** 10,000 words
-    """)
-    st.divider()
-    st.write("Built at 5:00 AM in Kapriwas 🇮🇳")
+# --- STREAMLIT UI ---
 
-# --- 4. UI LAYOUT: MAIN PANEL ---
+st.set_page_config(page_title="AI Sentiment Pro", page_icon="🎬")
+
+# Sidebar: Project Status & Versioning
+st.sidebar.title("🚀 Project Roadmap")
+st.sidebar.info("**Current Version:** V1.0 (Simple RNN)")
+st.sidebar.warning("""
+⚠️ **Known Limitation:** V1.0 uses a Simple RNN architecture. It may struggle with:
+- Negation (e.g., "not good")
+- Sarcasm
+- Long-range dependencies
+""")
+
+st.sidebar.write("---")
+st.sidebar.success("""
+🛠 **Coming Soon (V2.0):**
+- Switching to **LSTM** architecture.
+- Adding **Dropout** to reduce over-fitting.
+- Improved Tokenization.
+""")
+
+st.sidebar.write(f"Built by Mohit | Kapriwas, IN")
+
+# Main Content
 st.title("🎬 AI Movie Review Sentiment Analysis")
 st.write("This system uses a Recurrent Neural Network to predict if a review is positive or negative.")
 
-user_review = st.text_area("Enter your movie review here:", height=150, 
-                          placeholder="Example: The acting was superb but the plot was a bit slow...")
+user_input = st.text_area("Enter your movie review here:", "The movie was not good at all and the story was logicless.")
 
 if st.button("Analyze Sentiment"):
-    if user_review.strip():
-        with st.spinner('Neural Network is processing...'):
-            # Preprocessing
-            processed_input = preprocess_text(user_review)
-            
-            # Prediction Logic
-            prediction = model.predict(processed_input)
-            prob = float(prediction[0][0])
-            
-            # Logic: If $P(positive) > 0.5$, sentiment is Positive
-            sentiment = "Positive" if prob > 0.5 else "Negative"
-            confidence = prob if sentiment == "Positive" else 1 - prob
+    if user_input.strip() == "":
+        st.error("Please enter a review first!")
+    else:
+        with st.spinner('AI is thinking...'):
+            # Preprocess and Predict
+            preprocessed_input = preprocess_text(user_input)
+            prediction = model.predict(preprocessed_input)
+            sentiment = "Positive" if prediction[0][0] > 0.5 else "Negative"
+            confidence = prediction[0][0] if sentiment == "Positive" else 1 - prediction[0][0]
 
-            st.divider()
-            
-            # Metric Columns
+            # Display Result
             col1, col2 = st.columns(2)
+            
             with col1:
                 if sentiment == "Positive":
                     st.success(f"### Sentiment: {sentiment} ✅")
@@ -92,16 +75,13 @@ if st.button("Analyze Sentiment"):
                     st.error(f"### Sentiment: {sentiment} ❌")
             
             with col2:
-                st.metric(label="Confidence Score", value=f"{confidence:.2%}")
-                st.progress(prob)
+                st.metric("Confidence Score", f"{confidence * 100:.2f}%")
 
-            # Debugging/Interactivity expander
-            with st.expander("Technical Breakdown"):
-                st.write("The model processed your text into the following numerical sequence:")
-                st.code(processed_input)
-                st.write(f"Raw Output Probability: {prob:.4f}")
-    else:
-        st.warning("Please enter some text before analyzing.")
+            # Technical Breakdown (Expandable)
+            with st.expander("See Technical Breakdown"):
+                st.write(f"**Model Raw Output:** {prediction[0][0]:.4f}")
+                st.write("**Note:** Scores closer to 1.0 are Positive, scores closer to 0.0 are Negative.")
+                st.info("Notice: Simple RNNs sometimes focus on key words (like 'good') while ignoring qualifiers (like 'not'). This is why we are moving to LSTM.")
 
-st.markdown("---")
-st.caption("Deployment Status: Dockerized | CI/CD: GitHub Actions (Live)")
+else:
+    st.write("Click the button above to see the AI's magic.")
