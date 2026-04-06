@@ -12,24 +12,40 @@ word_index = imdb.get_word_index()
 # 2. Load the Bidirectional LSTM Model
 model = load_model('lstm_model.h5')
 
-# 3. THE ULTIMATE PREPROCESSING PATCH
+# 3. CORRECTED PREPROCESSING (MATCHES TRAINING DATA EXACTLY)
 def preprocess_text(text):
-    # Clean text: remove punctuation and lowercase everything
+    """
+    Preprocess text to match training data format from imdb.load_data().
+    
+    IMPORTANT: imdb.load_data() returns sequences WITHOUT a [1] start token.
+    The [1] is metadata, not part of review sequences.
+    
+    Index mapping (after imdb.load_data()):
+    - 0: padding
+    - 1: start of sequence (NOT prepended in actual data)
+    - 2: unknown/OOV token
+    - 3+: word indices (word_index value + 3)
+    """
+    # Step 1: Clean text - remove punctuation and convert to lowercase
     text = re.sub(r'[^\w\s]', '', text.lower())
     words = text.split()
     
-    # EVERY review must start with index 1 (The 'Start Signal')
-    encoded_review = [1] 
+    # Step 2: Encode words WITHOUT prepending [1]
+    # Matches structure of imdb.load_data() training sequences
+    encoded_review = []
     
     for word in words:
         index = word_index.get(word, None)
         # Handle Out of Vocabulary (OOV)
         if index is None or index >= 10000:
-            encoded_review.append(2) # 2 is the 'Unknown' token
+            # Use 2 for unknown tokens (reserved in IMDB encoding)
+            encoded_review.append(2)
         else:
-            encoded_review.append(index + 3) # IMDB standard shift
-            
-    # Final Padding to match the 250 length from training
+            # Add 3 to match IMDB's internal encoding scheme
+            encoded_review.append(index + 3)
+    
+    # Step 3: Pad to 250 length (matches training padding)
+    # pad_sequences pads with 0 by default (which is correct)
     padded_review = sequence.pad_sequences([encoded_review], maxlen=250)
     return padded_review
 
