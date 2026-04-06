@@ -1,68 +1,64 @@
-🎬 RNN Sentiment Pro: Production-Ready AI Pipeline
-An end-to-end Natural Language Processing (NLP) project featuring a Recurrent Neural Network (RNN) deployed via a fully automated CI/CD pipeline and Docker.
+🎬 AI Sentiment Pro V2.2: The Bidirectional LSTM Journey
+"It's not just about the model; it's about the data handshake."
+🚀 Project Overview
+This project is a Deep Learning-based sentiment analysis tool that classifies movie reviews as Positive or Negative. While many beginner projects stop at a simple RNN, this version represents a full evolution through three architectural iterations to solve real-world logical failures like negation, context-switching, and data misalignment.
 
-🚀 Overview
-This project classifies movie reviews as Positive or Negative using an RNN model trained on the IMDB dataset. Beyond the AI logic, it demonstrates professional-grade software engineering practices, including cross-version model compatibility and containerized deployment.
+📈 The Evolution (Honest Report)
+V1.0: The Simple RNN (Structural Failure)
+Architecture: Basic Recurrent Neural Network.
+
+The Reality: The model suffered from the Vanishing Gradient Problem. It could not "remember" words from the beginning of a sentence by the time it reached the end.
+
+The Fail Case: It classified "The movie was not good" as Positive because it effectively "forgot" the word "not."
+
+V2.0: Bidirectional LSTM (The Brain Upgrade)
+Architecture: Dual-layer Long Short-Term Memory (LSTM).
+
+The Reality: Added "Hindsight." The model now reads the sentence forward and backward simultaneously.
+
+The Discovery: Even with a better architecture, the app still struggled. This led to a deep-dive investigation into the "Indexing Handshake Bug."
+
+V2.2: The Final Handshake (Production Grade)
+The Fix: I identified a critical mismatch between the Keras IMDB training dataset and the production inference script.
+
+Key Correction: Implemented a +3 index shift, a mandatory <START> token (Index 1), and a robust <OOV> (Index 2) handler to ensure the model "reads" exactly what it was "taught."
+
+🔬 Honest Performance Analysis
+Case 1: The "High-Evidence" Negative
+Review: "This movie was bad. I hated it."
+
+Result: 99.48% Negative
+
+Analysis: When provided with strong, clear negative features, the Bidirectional LSTM reaches near-total mathematical certainty.
+
+Case 2: The "Diluted" Negation
+Review: "This movie was not good."
+
+Result: 56.90% Negative
+
+Analysis: The model correctly identified the negation ("not"), but the confidence is lower because the short 4-word "signal" is mathematically diluted by the 246 zero-padding tokens required for the input window.
+
+Case 3: The "Sarcasm" Limit (Feature Dominance)
+Review: "A masterpiece, but a total letdown."
+
+Result: 88.15% Positive
+
+The Reality: High-weight words like "masterpiece" have massive statistical gravity in the IMDB dataset. In this case, the positive weight of "masterpiece" outcompeted the negative weight of "letdown," proving that LSTMs still struggle with complex sarcasm where "Feature Dominance" overrides "Syntactic Logic."
 
 🛠️ Tech Stack
-AI/ML: TensorFlow, Keras, NumPy
+Framework: TensorFlow / Keras
 
-Web Framework: Streamlit
+Model: Bidirectional LSTM
 
-DevOps: Docker, GitHub Actions (CI/CD)
+Deployment: Streamlit Cloud
 
-Infrastructure: Docker Hub
+Pre-processing: Regex Sanitization & IMDB Index Mapping
 
-✨ Key Features
-Real-time Sentiment Analysis: Predictive modeling for custom text input.
+Dataset: IMDB (10,000 Vocab, 250 Sequence Length)
 
-Pro-Level UI: A "wide-mode" dashboard featuring confidence metrics, progress bars, and a technical breakdown sidebar.
+🧠 Lessons for the 2026 IT Market
+Sanitization is Mandatory: A perfect model will fail if punctuation (like the period in "bad.") isn't stripped, as it turns key words into "Unknown" tokens.
 
-Environment-Agnostic Loader: A custom "Safe Load" utility that patches Keras 3 metadata for Keras 2 environments, preventing deployment crashes.
+The Start Signal: Every model expects a "handshake." Without the <START> token, the model's internal sequence is shifted, leading to "hallucinated" results.
 
-Automated Pipeline: Fully integrated CI/CD that builds and pushes the image to Docker Hub on every commit.
-
-🤖 CI/CD Pipeline
-This repository uses GitHub Actions to maintain a "Build-Once, Run-Anywhere" workflow:
-
-Code Push: Triggered on every push to the main branch.
-
-Containerization: GitHub spins up a Linux runner to build the Docker image.
-
-Automated Registry: The image is pushed to Docker Hub (mohitkhairwal2005/simple-rnn-imdb-review).
-
-📦 Getting Started
-1. Run via Docker (Recommended)
-You don't need Python or TensorFlow installed. Just pull the latest production image:
-
-Bash
-# Pull the image from Docker Hub
-docker pull mohitkhairwal2005/simple-rnn-imdb-review:latest
-
-# Run the container
-docker run -p 8501:8501 mohitkhairwal2005/simple-rnn-imdb-review:latest
-Access the app at: http://localhost:8501
-
-2. Local Development
-Bash
-git clone https://github.com/mohityadav197/simple-rnn-imdb-review.git
-cd simple-rnn-imdb-review
-pip install -r requirements.txt
-streamlit run main.py
-📂 Project Structure
-Plaintext
-├── .github/workflows/
-│   └── deploy.yml          # CI/CD Pipeline configuration
-├── main.py                 # Streamlit UI with Metadata Patching logic
-├── simple_rnn_imdb.h5      # Pre-trained RNN Model
-├── Dockerfile              # Container configuration
-├── requirements.txt        # Managed dependencies (TensorFlow 2.16+)
-└── README.md               # Documentation
-🧠 Engineering Highlights for Recruiters
-Cross-Version Compatibility: Implemented a robust h5py metadata stripper to allow Keras 3 models to run in Keras 2 environments.
-
-Security: Managed deployment secrets using GitHub Secrets to prevent API/Token leakage.
-
-Optimization: Utilized @st.cache_resource for efficient model loading and resource management.
-
-Maintained by: Mohit Yadav | Location: Kapriwas, Haryana 🇮🇳
+Statistical vs. Logical: Deep learning models are statistical engines. Understanding why a model fails (like Case 3) is more valuable than pretending it is 100% accurate.
